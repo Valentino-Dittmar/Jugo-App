@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>IBCS Color Picker & Compliance</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <h1>IBCS ComplianceCheck</h1>
+    <label class="label-btn">
+      Upload Image
+      <input id="file" type="file" accept="image/*">
+    </label>
+    <canvas id="canvas"></canvas>
+    <div id="loupe"></div>
+    <div id="tooltip"></div>
+    <div id="info">
+      <div class="swatch" id="swatch"></div>
+      <p class="value" id="value">#FFFFFF</p>
+    </div>
+    <div id="resultBox">
+      <div id="resultText">Waiting for upload...</div>
+      <div id="likelihoodBar"><div id="likelihoodFill"></div></div>
+    </div>
+  </div>
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
