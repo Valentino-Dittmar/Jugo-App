@@ -1,11 +1,15 @@
-pip install flask pillow opencv-python ultralytics numpy scikit-learn matplotlib openai python-dotenv 
+# Fresh virtual environment (venv)
+pip install flask pillow opencv-python ultralytics numpy scikit-learn matplotlib openai python-dotenv
+pip install yolov5==7.0.14
 
-pip install flask
-pip install pillow
-pip install opencv-python
-pip install ultralytics
-pip install numpy
-pip install scikit-learn
-pip install matplotlib
-pip install openai
-pip install python-dotenv
+# Alternatively, install packages one-by-one if needed:
+# pip install flask
+# pip install pillow
+# pip install opencv-python
+# pip install ultralytics
+# pip install numpy
+# pip install scikit-learn
+# pip install matplotlib
+# pip install openai
+# pip install python-dotenv
+# pip install yolov5==7.0.14
