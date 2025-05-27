@@ -1,68 +1,93 @@
-import os
-import uuid
-import base64
-import json
-from flask import Flask, render_template, request, jsonify, url_for
-import openai
+import os, base64, json, openai
+from flask import Flask, render_template, request, redirect
+from werkzeug.utils import secure_filename
+from pipeline import run_full_pipeline  
 
-# Initialize Flask app
+# ── Config ────────────────────────────────────────────────────────────────────
+UPLOAD_FOLDER  = "uploads"
+ALLOWED_EXT    = {"png", "jpg", "jpeg", "gif"}
+VISION_MODEL   = "gpt-4.1"            
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 app = Flask(__name__)
-# Set your OpenAI API key
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+def allowed(fname): return "." in fname and fname.rsplit(".",1)[1].lower() in ALLOWED_EXT
 
-
-UPLOAD_DIR = os.path.join(app.static_folder, 'uploads')
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-@app.route('/')
+# ── Routes ────────────────────────────────────────────────────────────────────
+@app.route("/", methods=["GET", "POST"])
 def index():
-    return render_template('index.html')
+    result = img_b64 = None
+    issues = []          # list for template
 
-@app.route('/api/check', methods=['POST'])
-def check_ibcs():
-    data = request.get_json()
-    img_b64 = data.get('image')
-    if not img_b64:
-        return jsonify({'error': 'No image provided'}), 400
+    if request.method == "POST":
+        f, color = request.files.get("file"), request.form.get("color")
+        if not (f and color and allowed(f.filename)): return redirect("/")
 
-    try:
-        img_data = base64.b64decode(img_b64)
-        filename = f"{uuid.uuid4().hex}.jpg"
-        filepath = os.path.join(UPLOAD_DIR, filename)
-        with open(filepath, 'wb') as f:
-            f.write(img_data)
-        image_url = request.url_root.rstrip('/') + url_for('static', filename=f'uploads/{filename}')
-    except Exception as e:
-        return jsonify({'error': f'Failed to save image: {e}'}), 500
+        # save upload
+        path = os.path.join(UPLOAD_FOLDER, secure_filename(f.filename))
+        f.save(path)
 
-    try:
-        resp = openai.chat.completions.create(
-            model='gpt-4o',
-            messages=[
-                {"role": "system", "content": (
-                    "You are a vision-capable AI expert. Analyze provided chart images for IBCS compliance. "
-                    "Respond ONLY with a JSON: {\"likelihood\": <0-100>, \"explanation\": <string>}."
-                )},
-                {"role": "user", "content": [
-                    {"type": "text", "text": "Please assess this chart for IBCS compliance:"},
-                    {"type": "image_url", "image_url": {"url": image_url}}
-                ]}
-            ],
-            max_tokens=500
-        )
-        raw = resp.choices[0].message.content.strip()
+        result, img_bytes, _ = run_full_pipeline(path, color)
+        if img_bytes:
+            img_b64 = base64.b64encode(img_bytes).decode()
 
-        # Extract JSON part
-        start = raw.find('{')
-        end = raw.rfind('}') + 1
-        if start == -1 or end == -1:
-            return jsonify({'error': 'Invalid JSON from AI', 'raw': raw}), 500
-        json_str = raw[start:end]
-        result = json.loads(json_str)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+            try:
+                resp = openai.chat.completions.create(
+                    model=VISION_MODEL,
+                    response_format={"type": "json_object"},
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": (
+                                "You are an IBCS-certified consultant. "
+                                "Respond ONLY with a JSON object: "
+                                "{\"issues\":[{\"location\":\"...\",\"issue\":\"...\",\"fix\":\"...\"}, ...]} "
+                                "No additional keys."
+                            ),
+                        },
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": "List every IBCS color-compliance problem and how to fix it.",
+                                },
+                                {
+                                    "type": "image_url",
+                                    "image_url": {"url": f"data:image/png;base64,{img_b64}"},
+                                },
+                            ],
+                        },
+                    ],
+                    max_tokens=500,
+                )
+                parsed = json.loads(resp.choices[0].message.content)
+                issues = parsed.get("issues", [])
+            except Exception as e:
+                issues = [{"location": "⚠️ AI feedback unavailable", "issue": str(e), "fix": ""}]
+        else:
+            # pipeline returned no processed image
+            issues = [{"location": "⚠️", "issue": "No processed image returned from pipeline.", "fix": ""}]
 
-    return jsonify(result)
+    return render_template(
+        "index.html",
+        result=result,
+        image_data=img_b64,
+        issues=issues,
+    )
 
+@app.route("/delete_images", methods=["POST"])
+def delete_images():
+    import shutil
+    for entry in os.listdir(UPLOAD_FOLDER):
+        p = os.path.join(UPLOAD_FOLDER, entry)
+        try:
+            shutil.rmtree(p) if os.path.isdir(p) else os.remove(p)
+        except Exception:
+            pass
+    return redirect("/")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True)

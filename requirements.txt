@@ -1,5 +1,0 @@
-flask
-opencv-python
-pillow
-torch  
-segment-anything

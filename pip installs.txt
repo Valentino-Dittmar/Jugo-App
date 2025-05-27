@@ -1,0 +1,11 @@
+pip install flask pillow opencv-python ultralytics numpy scikit-learn matplotlib openai python-dotenv 
+
+pip install flask
+pip install pillow
+pip install opencv-python
+pip install ultralytics
+pip install numpy
+pip install scikit-learn
+pip install matplotlib
+pip install openai
+pip install python-dotenv
