@@ -31,41 +31,45 @@ def index():
         path = os.path.join(UPLOAD_FOLDER, secure_filename(f.filename))
         f.save(path)
 
-        result, img_bytes, non_compliant_colors = run_full_pipeline(path, color)
+        result, img_bytes, non_compliant_colors, non_compliant_direction = run_full_pipeline(path, color)
         if img_bytes:
             img_b64 = base64.b64encode(img_bytes).decode()
             try:
                 resp = openai.chat.completions.create(
-                    model=VISION_MODEL,
-                    response_format={"type": "json_object"},
-                    messages=[
-                        {
-                            "role": "system",
-                            "content": (
-                                "You are an IBCS-certified consultant. "
-                                "Return ONLY this JSON structure: "
-                                "{\"issues\":[{\"location\":\"...\",\"issue\":\"...\",\"fix\":\"...\"}]}"
-                            ),
-                        },
-                        {
-                            "role": "user",
-                            "content": [
-                                {
-                                    "type": "text",
-                                    "text": (
-                                        "Return your answer as JSON. "
-                                        "List every IBCS color-compliance problem in this dashboard and how to fix it."
-                                    ),
-                                },
-                                {
-                                    "type": "image_url",
-                                    "image_url": {"url": f"data:image/png;base64,{img_b64}"},
-                                },
-                            ],
-                        },
-                    ],
-                    max_tokens=500,
-                )
+                model=VISION_MODEL,
+                response_format={"type": "json_object"},
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are an IBCS-certified consultant. "
+                            "Analyze the given dashboard image for both **color compliance** and **direction compliance**."
+                            f"Use the {non_compliant_direction} and {non_compliant_colors} as reason for non compliance."
+                            "Return ONLY this JSON structure: "
+                            "{\"issues\":[{\"location\":\"...\",\"issue\":\"...\",\"fix\":\"...\"}]}"
+                            "If there is no issue found at all for both color and direction, return ONLY this JSON:"
+                            "{\"issues\":[{\"result\":\"No IBCS rule violation is found.\"}]}"
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": (
+                                    "Return your answer as JSON. "
+                                    "List every IBCS compliance problem in this dashboard — including color and direction issues — and how to fix them."
+                                ),
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:image/png;base64,{img_b64}"},
+                            },
+                        ],
+                    },
+                ],
+                max_tokens=500,
+            )
                 issues = json.loads(resp.choices[0].message.content).get("issues", [])
             except Exception as e:
                 issues = [{"location": "⚠️ AI feedback unavailable", "issue": str(e), "fix": ""}]

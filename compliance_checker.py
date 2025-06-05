@@ -50,6 +50,8 @@ def run_compliance_check(image, detections, user_hex):
     non_compliant = False
     non_compliant_colors = []
 
+    annotations = []
+
     for det in detections:
         x_center, y_center, w, h = det
         x1 = int((x_center - w / 2) * image.shape[1])
@@ -69,13 +71,15 @@ def run_compliance_check(image, detections, user_hex):
 
         if not compliant:
             non_compliant_colors.append(bad_color)
-            cv2.rectangle(image, (x1, y1), (x2, y2), (0, 0, 255), 3)
-            cv2.putText(image, "Non-compliant", (x1, y1 - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+            annotations.append({
+                "bbox": (x1, y1, x2, y2),
+                "label": "Non-compliant",
+                "color": (0, 0, 255),
+                "thickness": 3,
+                "font_scale": 0.6,
+                "font_thickness": 2
+            })
             non_compliant = True
-
-    print("✅ Final compliance result:", not non_compliant)
-    _, buffer = cv2.imencode('.png', image)
 
     formatted_colors = []
     for color in non_compliant_colors:
@@ -83,5 +87,5 @@ def run_compliance_check(image, detections, user_hex):
         html = f"RGB ({r}, {g}, {b}) <span style='display:inline-block; width:16px; height:16px; margin-left:8px; background-color: rgb({r},{g},{b}); border: 1px solid #000;'></span>"
         formatted_colors.append(html)
 
-    return not non_compliant, buffer.tobytes(), formatted_colors
+    return non_compliant, annotations, formatted_colors
 

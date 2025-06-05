@@ -1,83 +1,61 @@
-import os
-import shutil
+from ultralytics import YOLO
 import cv2
-import numpy as np
-import glob
+import os
 from compliance_checker import run_compliance_check
-from yolov5.detect import run as yolo_run
+from compliance_checker_2 import run_compliance_check_2
 
-def run_full_pipeline(image_path, user_hex,
-                      yolov5_dir="yolov5",
-                      weights_path="./yolov5_weights/best.pt",
-                      output_dir="/uploads"):
+def run_full_pipeline(image_path, user_hex):
+    # === Step 1: Load model ===
+    model = YOLO("./yolov5_weights/best.pt")
 
-    print("📦 Running pipeline for:", image_path, flush=True)
-    print("🎯 Passed user hex color:", user_hex, flush=True)
+    # === Step 2: Run prediction ===
+    results = model.predict(source=image_path, save=False, conf=0.25)
 
-    # === Step 1: Clean up old YOLO label files ===
-    label_folder = os.path.join(yolov5_dir, "runs/detect/webinput/labels")
-    if os.path.exists(label_folder):
-        for f in glob.glob(os.path.join(label_folder, "*.txt")):
-            os.remove(f)
-
-    # === Step 2: Run YOLO detection ===
-    yolo_run(
-        weights=weights_path,
-        source=os.path.abspath(image_path),
-        imgsz=(640, 640),
-        conf_thres=0.25,
-        iou_thres=0.45,
-        save_txt=True,
-        save_conf=True,
-        project=os.path.join(yolov5_dir, "runs/detect"),
-        name="webinput",
-        exist_ok=True,
-        nosave=False
-    )
-
-    # === Step 3: Paths ===
-    image_filename = os.path.basename(image_path)
-    label_name = os.path.splitext(image_filename)[0] + ".txt"
-    label_path = os.path.join(yolov5_dir, "runs/detect/webinput/labels", label_name)
-
-    # === Step 4: Load the original uploaded image (no boxes) ===
+    # === Step 3: Load image ===
     result_image = cv2.imread(image_path)
     if result_image is None:
-        raise ValueError(f"❌ Could not load original image from {image_path}")
+        raise ValueError(f"Could not load original image from {image_path}")
 
-    # === Step 5: Parse label file ===
+    # === Step 4: Extract detections from results ===
     detections = []
-    if os.path.exists(label_path):
-        with open(label_path, "r") as file:
-            for line in file:
-                parts = line.strip().split()
-                if len(parts) >= 5:
-                    try:
-                        cls, x_center, y_center, w, h = map(float, parts[:5])
-                        detections.append([x_center, y_center, w, h])
-                    except ValueError:
-                        continue
-        print("📄 Using label file:", label_path, flush=True)
-    else:
-        print("⚠️ No label file found — assuming compliant", flush=True)
-        _, buffer = cv2.imencode('.png', result_image)
-        return True, buffer.tobytes()
 
-    print("✅ YOLO Detections:", len(detections), flush=True)
-    print("✅ Detection boxes:", detections, flush=True)
+    for r in results:
+        img_h, img_w = r.orig_shape[:2]
+        for box in r.boxes.xywh:  # Absolute pixel values
+            x, y, w, h = box.cpu().numpy().tolist()
+            # Normalize manually (0–1 range)
+            norm_x = x / img_w
+            norm_y = y / img_h
+            norm_w = w / img_w
+            norm_h = h / img_h
+            detections.append([norm_x, norm_y, norm_w, norm_h])
 
-    # === Step 6: Run compliance check ===
-    print("🔍 Calling compliance check...", flush=True)
-    is_compliant, result_image_in_memory, formatted_colors = run_compliance_check(result_image, detections, user_hex)
-    print("✅ Final compliance result:", is_compliant, flush=True)
+    # === Step 5: Run color compliance check ===
+    non_color_compliant, annotations, formatted_colors = run_compliance_check(result_image, detections, user_hex)
 
-    # === Step 7: Cleanup (only label now, no blue-box image to delete)
-    try:
-        if os.path.exists(label_path):
-            os.remove(label_path)
-    except Exception as e:
-        print(f"⚠️ Cleanup error: {e}", flush=True)
+    # === Step 6: Run direction compliance check ===
+    non_direction_compliant, inf_img, reasons = run_compliance_check_2(result_image)
 
-    return is_compliant, result_image_in_memory, formatted_colors
+    # === Step 7: Draw bounding box for non color compliant charts ===
+    if annotations:
+        for ann in annotations:
+            x1, y1, x2, y2 = ann["bbox"]
+            color = ann["color"]
+            thickness = ann["thickness"]
+            inf_img = cv2.rectangle(inf_img, (x1, y1), (x2, y2), color, thickness)
+            inf_img = cv2.putText(inf_img, ann["label"], (x1, y1 - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX,
+                                ann["font_scale"], color, ann["font_thickness"])
+            
+    # === Step 8: Determine final compliancy status ===
+    compliance = False
 
+    if non_color_compliant == False:
+        compliance = True
+    elif non_direction_compliant == False:
+        compliance = True
 
+    # === Step 9: Return values for final output ===
+    _, buffer = cv2.imencode('.png', inf_img)
+
+    return compliance, buffer.tobytes(), formatted_colors, reasons
