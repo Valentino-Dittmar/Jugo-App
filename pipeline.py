@@ -1,8 +1,8 @@
 from ultralytics import YOLO
 import cv2
 import os
-from compliance_checker import run_compliance_check
-from compliance_checker_2 import run_compliance_check_2
+from color_compliance_checker import run_color_compliance_check
+from direction_compliance_checker import run_direction_compliance_check
 
 def run_full_pipeline(image_path, user_hex):
     # === Step 1: Load model ===
@@ -31,10 +31,10 @@ def run_full_pipeline(image_path, user_hex):
             detections.append([norm_x, norm_y, norm_w, norm_h])
 
     # === Step 5: Run color compliance check ===
-    non_color_compliant, annotations, formatted_colors = run_compliance_check(result_image, detections, user_hex)
+    non_color_compliant, annotations, formatted_colors = run_color_compliance_check(result_image, detections, user_hex)
 
     # === Step 6: Run direction compliance check ===
-    non_direction_compliant, inf_img, reasons = run_compliance_check_2(result_image)
+    non_direction_compliant, inf_img, reasons = run_direction_compliance_check(result_image)
 
     # === Step 7: Draw bounding box for non color compliant charts ===
     if annotations:
