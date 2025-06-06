@@ -44,7 +44,8 @@ def index():
                         "content": (
                             "You are an IBCS-certified consultant. "
                             "Analyze the given dashboard image for both **color compliance** and **direction compliance**."
-                            f"Use the {non_compliant_direction} and {non_compliant_colors} as reason for non compliance."
+                            f"Use the {non_compliant_direction} and the {non_compliant_colors} (don't include the HTML span) as reason for non compliance."
+                            "If chart title is present, use the chart title as location of issue."
                             "Return ONLY this JSON structure: "
                             "{\"issues\":[{\"location\":\"...\",\"issue\":\"...\",\"fix\":\"...\"}]}"
                             "If there is no issue found at all for both color and direction, return ONLY this JSON:"
