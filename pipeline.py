@@ -50,9 +50,7 @@ def run_full_pipeline(image_path, user_hex):
     # === Step 8: Determine final compliancy status ===
     compliance = False
 
-    if non_color_compliant == False:
-        compliance = True
-    elif non_direction_compliant == False:
+    if non_color_compliant == False and non_direction_compliant == False:
         compliance = True
 
     # === Step 9: Return values for final output ===

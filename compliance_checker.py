@@ -73,7 +73,7 @@ def run_compliance_check(image, detections, user_hex):
             non_compliant_colors.append(bad_color)
             annotations.append({
                 "bbox": (x1, y1, x2, y2),
-                "label": "Non-compliant",
+                "label": "Non-compliant Color",
                 "color": (0, 0, 255),
                 "thickness": 3,
                 "font_scale": 0.6,

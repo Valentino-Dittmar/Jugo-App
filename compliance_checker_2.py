@@ -103,8 +103,8 @@ def run_compliance_check_2(image):
                     non_compliant_count += 1
 
                     inf_img = inf_img.copy()
-                    inf_img = cv2.rectangle(inf_img, (x_min_chart, y_min_chart), (x_max_chart, y_max_chart), (0, 0, 255), 4)  # Red box
-                    inf_img = cv2.putText(inf_img, "Non-Compliant", (x_min_chart, max(y_min_chart - 10, 20)), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+                    inf_img = cv2.rectangle(inf_img, (x_min_chart, y_min_chart), (x_max_chart, y_max_chart), (128, 0, 128), 4)  # Red box
+                    inf_img = cv2.putText(inf_img, "Non-compliant Direction", (x_min_chart, max(y_min_chart - 10, 20)), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (128, 0, 128), 2)
 
                     reason = "Time-series should always be aligned left to right horizontally on the x-axis."
                     reasons.append(reason)
@@ -115,8 +115,8 @@ def run_compliance_check_2(image):
                         non_compliant_count += 1
 
                         inf_img = inf_img.copy()
-                        inf_img = cv2.rectangle(inf_img, (x_min_chart, y_min_chart), (x_max_chart, y_max_chart), (0, 0, 255), 4)  # Red box
-                        inf_img = cv2.putText(inf_img, "Non-Compliant", (x_min_chart, max(y_min_chart - 10, 20)), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+                        inf_img = cv2.rectangle(inf_img, (x_min_chart, y_min_chart), (x_max_chart, y_max_chart), (128, 0, 128), 4)  # Red box
+                        inf_img = cv2.putText(inf_img, "Non-compliant Direction", (x_min_chart, max(y_min_chart - 10, 20)), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (128, 0, 128), 2)
 
                         reason = "Non-time-series should always be aligned from top to bottom vertically on the y-axis."
                         reasons.append(reason)
