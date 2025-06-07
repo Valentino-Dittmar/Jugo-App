@@ -182,11 +182,44 @@
     transform: scale(1.01);
 }
 
+#lazy-loading {
+    width: 100%;
+    height: 100%;
+    position: fixed;
+    top:0;
+    left:0;
+    z-index: 10;
 
+    background-color:rgb(0, 0, 0, .8);
+    backdrop-filter: blur(5px);
 
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
 
+#loading-circle {
+    border: 7px solid rgb(0, 0, 0, .8);
+    border-top: 7px solid white;
+    border-radius: 100%;
 
-    </style>
+    padding: 20px;
+
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    0% {transform: rotate(0deg);}
+    100% {transform: rotate(360deg);}
+}
+
+#loading-text {
+    font-size: 20px;
+    margin: 10px;
+}
+
+</style>
     <script type="text/javascript">
         function googleTranslateElementInit() {
           new google.translate.TranslateElement(
@@ -203,6 +236,11 @@
 </head>
 <body>
     <div class="container" role="main">
+        <div id="lazy-loading">
+            <div id="loading-circle"></div>
+            <p id="loading-text">Analyzing... please wait</p>
+        </div>
+
         <h1>IBCS Color Compliance Checker</h1>
         <button class="btn" onclick="readPage()">🔊 Read Full Page</button>
         <div id="google_translate_element" style="text-align: right; margin-bottom: 1rem;"></div>
@@ -211,8 +249,8 @@
             <div class="color-input-group">
                 <label for="color" aria-label="Choose your company highlight color">Choose your company color:</label>
                 <div class="color-pair">
-                    <input type="color" id="color" name="color" value="#448294" required class="color-picker" aria-label="Company color picker">
-                    <span id="color-value" class="color-label">#448294</span>
+                    <input type="color" id="color" name="color" value="#ffffff" required class="color-picker" aria-label="Company color picker">
+                    <span id="color-value" class="color-label">#ffffff</span>
                 </div>
             </div>
 
@@ -224,7 +262,7 @@
             </div>
 
             <div class="button-row" style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center;">
-                <button class="btn" type="submit" aria-label="Check color compliance">Check Compliance</button>
+                <button class="btn" type="submit" onClick="showLoader()" aria-label="Check color compliance">Check Compliance</button>
                 <button class="btn" type="button" onclick="resetPage()" aria-label="Clear uploaded image">Clear Page</button>
 
             </div>
@@ -232,28 +270,28 @@
 
         {% if result is not none %}
         <div class="result-container" aria-live="polite">
-            {% if result %}
-                <p class="result-message success">✅ This dashboard is IBCS Color Compliant!</p>
-            {% else %}
-                <p class="result-message error">❌ Dashboard Not Compliant — Please see the red boxes outlining problematic graphs in the image below:</p>
-                {% if non_compliant_colors %}
-                    <p>The following dominant colors are not allowed as per IBCS rules, but detected in the dashboard:</p>
-                    <ul>
-                        {% for color in non_compliant_colors %}
-                            <li>{{ color | safe }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
+        {% if result %}
+            <p class="result-message success">✅ This dashboard is IBCS Color Compliant!</p>
+        {% else %}
+            <p class="result-message error">❌ Dashboard Not Compliant — Please see the red boxes outlining problematic graphs in the image below:</p>
+            {% if non_compliant_colors %}
+                <p>The following dominant colors are not allowed as per IBCS rules, but detected in the dashboard:</p>
+                <ul>
+                    {% for color in non_compliant_colors %}
+                        <li>{{ color | safe }}</li>
+                    {% endfor %}
+                </ul>
             {% endif %}
+        {% endif %}
 
-            {% if image_data %}
-                <img class="preview-image" src="data:image/png;base64,{{ image_data }}" alt="Image showing dashboard compliance results">
-            {% endif %}
-            {% for it in issues %}
-  <p><strong>{{ it.location }}</strong><br>
-     Issue: {{ it.issue }}<br>
-     Fix: {{ it.fix }}</p>
-{% endfor %}
+        {% if image_data %}
+            <img class="preview-image" src="data:image/png;base64,{{ image_data }}" alt="Image showing dashboard compliance results">
+        {% endif %}
+        {% for it in issues %}
+        <p><strong>{{ it.location }}</strong><br>
+            Issue: {{ it.issue }}<br>
+            Fix: {{ it.fix }}</p>
+        {% endfor %}
         </div>
         {% endif %}
     </div>
@@ -281,31 +319,40 @@
         });
 
         function readPage() {
-        const msg = new SpeechSynthesisUtterance();
-        msg.text = document.body.innerText;
-        window.speechSynthesis.speak(msg);
+            const msg = new SpeechSynthesisUtterance();
+            msg.text = document.body.innerText;
+            window.speechSynthesis.speak(msg);
+        }
+
+        function showLoader() {
+            const resultContainer = document.querySelector(".result-container");
+            const lazyloader = document.getElementById("lazy-loading")
+
+            lazyloader.style.display = 'flex';
+
+            if (resultContainer) {
+                lazyloader.style.display = 'none';
+            }
         }
 
         function resetPage() {
-    // Reset file input
-    document.getElementById("file-upload").value = "";
+            // Reset file input
+            document.getElementById("file-upload").value = "";
 
-    // Clear preview image
-    document.getElementById("image-preview").innerHTML = "";
+            // Clear preview image
+            document.getElementById("image-preview").innerHTML = "";
 
-    // Reset color picker
-    const colorPicker = document.getElementById("color");
-    colorPicker.value = "#448294";
-    document.getElementById("color-value").textContent = "#448294";
+            // Reset color picker
+            const colorPicker = document.getElementById("color");
+            colorPicker.value = "#ffffff";
+            document.getElementById("color-value").textContent = "#ffffff";
 
-    // Remove result section
-    const resultContainer = document.querySelector(".result-container");
-    if (resultContainer) {
-        resultContainer.remove();
-    }
-}
-
-
+            // Remove result section
+            const resultContainer = document.querySelector(".result-container");
+            if (resultContainer) {
+                resultContainer.remove();
+            }
+        }
     </script>
 </body>
 </html>
