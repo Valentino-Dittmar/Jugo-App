@@ -8,13 +8,13 @@ def run_full_pipeline(image_path, user_hex):
     # === Step 1: Load model ===
     model = YOLO("./yolov5_weights/best.pt")
 
-    # === Step 2: Run prediction ===
-    results = model.predict(source=image_path, save=False, conf=0.25)
-
-    # === Step 3: Load image ===
+    # === Step 2: Load image ===
     result_image = cv2.imread(image_path)
     if result_image is None:
         raise ValueError(f"Could not load original image from {image_path}")
+
+    # === Step 3: Run chart detection ===
+    results = model.predict(source=image_path, save=False, conf=0.25)
 
     # === Step 4: Extract detections from results ===
     detections = []
@@ -34,7 +34,7 @@ def run_full_pipeline(image_path, user_hex):
     non_color_compliant, annotations, formatted_colors = run_color_compliance_check(result_image, detections, user_hex)
 
     # === Step 6: Run direction compliance check ===
-    non_direction_compliant, inf_img, reasons = run_direction_compliance_check(result_image)
+    non_direction_compliant, inf_img, direction_issues = run_direction_compliance_check(result_image)
 
     # === Step 7: Draw bounding box for non color compliant charts ===
     if annotations:
@@ -56,4 +56,4 @@ def run_full_pipeline(image_path, user_hex):
     # === Step 9: Return values for final output ===
     _, buffer = cv2.imencode('.png', inf_img)
 
-    return compliance, buffer.tobytes(), formatted_colors, reasons
+    return compliance, buffer.tobytes(), formatted_colors, direction_issues
