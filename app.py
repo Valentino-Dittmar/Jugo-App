@@ -32,7 +32,7 @@ def index():
         f.save(path)
 
         result, img_bytes, non_compliant_colors, non_compliant_direction = run_full_pipeline(path, color)
-        if img_bytes:
+        if img_bytes and result == False:
             img_b64 = base64.b64encode(img_bytes).decode()
             try:
                 resp = openai.chat.completions.create(
@@ -74,6 +74,9 @@ def index():
                 issues = json.loads(resp.choices[0].message.content).get("issues", [])
             except Exception as e:
                 issues = [{"location": "⚠️ AI feedback unavailable", "issue": str(e), "fix": ""}]
+        elif result == True:
+            img_b64 = base64.b64encode(img_bytes).decode()
+            issues
         else:
             issues = [{"location": "⚠️", "issue": "No processed image returned from pipeline.", "fix": ""}]
 
