@@ -48,8 +48,6 @@ def index():
                             "If chart title is present, use the chart title as location of issue."
                             "Return ONLY this JSON structure: "
                             "{\"issues\":[{\"location\":\"...\",\"issue\":\"...\",\"fix\":\"...\"}]}"
-                            "If there is no issue found at all for both color and direction, return ONLY this JSON:"
-                            "{\"issues\":[{\"result\":\"No IBCS rule violation is found.\"}]}"
                         ),
                     },
                     {
@@ -59,7 +57,7 @@ def index():
                                 "type": "text",
                                 "text": (
                                     "Return your answer as JSON. "
-                                    "List every IBCS compliance problem in this dashboard — including color and direction issues — and how to fix them."
+                                    "List every IBCS compliance problem in this dashboard — color and direction issues indicated by the bounding boxes — and how to fix them."
                                 ),
                             },
                             {
